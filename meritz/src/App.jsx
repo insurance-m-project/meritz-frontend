@@ -3,7 +3,7 @@ import React, {useEffect,useState} from 'react';
 import DataList from './components/DataList';
 import NotificationButton from './components/NotificationButton';
 import Modal from './components/Modal';
-import useWeb3 from './hooks/useWeb3';
+// import useWeb3 from './hooks/useWeb3';
 import './styles.css'; // 상대 경로에 따라 변경
 
 function App() {
@@ -15,9 +15,9 @@ function App() {
     const [selectedItem, setSelectedItem] = useState(null);
     const [showModal, setShowModal] = useState(false);
 
-    const [web3, account] = useWeb3();
-    const [count, setCount] = useState(0);
-    const [deployed, setDeployed] = useState(null);
+    // const [web3, account] = useWeb3();
+    // const [count, setCount] = useState(0);
+    // const [deployed, setDeployed] = useState(null);
 
     // useEffect(() => {
     //     (async () => {
