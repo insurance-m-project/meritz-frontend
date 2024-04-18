@@ -65,21 +65,44 @@ th {
 tr:hover {
     background-color: #f0f0f0; /* 행 마우스 오버 시 배경색 변경 */
 }
-/* src/styles.css */
-.dropdown-content {
-    position: absolute;
-    right: 0;
-    top: 100%; /* 드롭다운을 버튼 바로 아래에 위치 */
+
+.dropdown-container {
+     position: relative; /* 드롭다운의 포지셔닝 컨텍스트를 설정 */
+ }
+
+.dropdown {
+    position: absolute; /* 절대 위치 */
+    top: 100%; /* 버튼 바로 아래 */
+    right: 0; /* 컨테이너의 왼쪽 가장자리와 정렬 */
+    width: auto; /* 너비를 자동으로 설정 */
+    max-height: 500px; /* 최대 높이 설정, 3개 요소의 높이 */
+    overflow-y: auto; /* 요소가 많아지면 스크롤바 생성 */
+    border: 1px solid #ccc;
+    padding: 10px;
+    background-color: white; /* 배경색 지정 */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* 드롭다운에 그림자 추가 */
     z-index: 1000; /* 다른 요소들 위에 표시 */
-    background-color: white;
-    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-    width: auto;
-    list-style-type: none;
-    padding: 0;
-    margin: 0;
 }
 
-.dropdown-content li {
-    padding: 8px;
-    cursor: pointer;
+.dropdown-item {
+    padding: 5px;
+    border-bottom: 1px solid #eee;
+    min-width: 200px;
+    width: 200px;
+    height: 48px; /* 3줄 높이 */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+    overflow: hidden; /* 텍스트가 넘치면 숨김 */
+    text-overflow: ellipsis; /* 텍스트가 넘칠 경우 생략 기호 사용 */
+    white-space: nowrap; /* 텍스트를 한 줄로 처리 */
+}
+
+.dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.dropdown-item button {
+    margin-left: 10px;
 }

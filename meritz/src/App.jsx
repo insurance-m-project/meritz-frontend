@@ -1,80 +1,159 @@
 // src/components/App.js
-import React, {useEffect,useState} from 'react';
-import DataList from './components/DataList';
+import React, {useEffect, useState} from 'react';
 import NotificationButton from './components/NotificationButton';
-import Modal from './components/Modal';
-// import useWeb3 from './hooks/useWeb3';
-import './styles.css'; // 상대 경로에 따라 변경
+import ModalComponent from './components/ModalComponent';
+import useWeb3 from './hooks/useWeb3';
+import MRContract from './contracts/MedicalRecord.json';
+import './styles.css';
 
 function App() {
-    const [data, setData] = useState([
-        {date:'2023-12-22',name: "홍길동", diseaseCode: "J09", birth: "1997.01.01", price: "35,000", nonPrice:"20,000"},
-        {date:'2023-12-22',name: "박개똥", diseaseCode: "J09", birth: "1997.01.01", price: "35,000", nonPrice:"20,000"},
-    ]);
+    const [data, setData] = useState([]);
+
+    const [web3, account] = useWeb3();
     const [eventCount, setEventCount] = useState(0);
+
     const [selectedItem, setSelectedItem] = useState(null);
     const [showModal, setShowModal] = useState(false);
+    const [tableData, setTableData] = useState([]);
+    const [deployed, setDeployed] = useState(null);
 
-    // const [web3, account] = useWeb3();
-    // const [count, setCount] = useState(0);
-    // const [deployed, setDeployed] = useState(null);
+    const [noteData, setNoteData] = useState([]);
 
-    // useEffect(() => {
-    //     (async () => {
-    //         if (deployed) return;
-    //
-    //         // networkId 가져오기
-    //         const networkId = await web3.eth.net.getId();
-    //         const CA = CounterContract.networks[networkId].address;
-    //
-    //         const abi = CounterContract.abi;
-    //
-    //         // Contract를 호출할 때 필요한 값들을 인자값으로 전달
-    //         // 인자값 2개 , (abi, CA)
-    //         const Deployed = new web3.eth.Contract(abi, CA); // 배포한 컨트랙트 정보 가져오기
-    //
-    //         const count = await Deployed.methods.current().call();
-    //
-    //         // 이벤트 구독
-    //         // 백그라운드에서 돌아가는 코드.
-    //         /**
-    //          * eth.subscribe() 인자값 2개
-    //          * 1. 'logs' 이벤트 구독
-    //          * 2. 어느 컨트랙트 안에 있는 로그를 가져올 것인가. (해당 컨트랙트 안에 있는 로그만 추적)
-    //          */
-    //         // subscribe() : 구독하겠다.
-    //         // on() : 받겠다.
-    //         // 'logs' 이벤트가 발동할 때마다 on()에 있는 콜백함수 발동
-    //         web3.eth.subscribe('logs', { address: CA }).on('data', (log) => {
-    //
-    //             // decodeLog() 인자값
-    //             // 1. 받아온 데이터를 어떤 형태로 파싱할 것인지
-    //             //    type은 Solidity 쪽에서 선언한 타입 작성 (받는 쪽에서는 string으로 파싱)
-    //             //    name은 이름을 지정해주는 것 (받을 이름)
-    //             // 2. 파싱할 데이터
-    //             const params = [{ type: 'uint256', name: 'count' }];
-    //             const value = web3.eth.abi.decodeLog(params, log.data); // 반환값 Object
-    //             // emit 한 데이터가 여러개라면 반환값의 형태는 배열 안의 Object
-    //             // 여러 데이터가 있을 경우 인덱스 혹은 지정한 name으로 구분
-    //
-    //             setCount(value.count);
-    //         });
-    //         // data : '0x0000000000000000000000000000000000000000000000000000000000000002'
-    //         // uint256 공간 안에 count 상태변수 값만큼 넣어놓은 것
-    //
-    //         setCount(parseInt(count));
-    //         setDeployed(Deployed);
-    //     })();
-    // }, []);
+    const [hoverIndex, setHoverIndex] = useState(null);
 
-    const handleProcess = (item) => {
-        console.log('Processing:', item);
-        setEventCount(eventCount + 1);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [patientInfo, setPatientInfo] = useState(null);
+
+
+    const handleRowClick = (item) => {
+        setSelectedItem(item);
+        setPatientInfo({
+                name: item['0'],
+                treatmentCode: item['2'],
+                treatmentPeriod: item['3'],
+                registrationNumber: item['1'],
+                issueNumber: item['4']
+        })
+        console.log(item);
+        var temp =[];
+        for(var i = 0;i < item['9'].length;i++) {
+            temp.push({
+                category:item['9'][i]['0'],
+                date:item['9'][i]['1'],
+                treatCode:item['9'][i]['2'],
+                description:item['9'][i]['3'],
+                amount:item['9'][i]['4'],
+                oop:item['9'][i]['5'],
+                pcc:item['9'][i]['6'],
+                foop:item['9'][i]['7'],
+                nonReimbursement:item['9'][i]['8'],
+            });
+        }
+        setTableData(temp);
+        setIsModalOpen(true);
     };
+
+    const handleClose = () => {
+        setIsModalOpen(false);
+    };
+
+    useEffect(() => {
+        console.log(web3 + " : " + account);
+        if (!account || deployed || !web3) return;
+
+        async function setupSubscription() {
+            const networkId = await web3.eth.net.getId();
+            const CA = MRContract.networks[networkId].address;
+            const abi = MRContract.abi;
+            const Deployed = new web3.eth.Contract(abi, CA);
+
+            setDeployed(Deployed); // 한 번만 설정하도록 조정
+
+            web3.setProvider(new web3.providers.WebsocketProvider('ws://localhost:8503'));
+            const resultData = await Deployed.methods.getMedicalRecord('receipt123').call();
+            console.log(resultData);
+
+            web3.eth.subscribe('logs', {address: CA})
+                .on('data', (log) => {
+                    console.log("Event triggered!");
+                    setEventCount(prevEventCount => prevEventCount + 1);
+                    console.log(log);
+
+                    // 이벤트의 ABI 정의
+                    const eventAbi = [{
+                        type: 'string',
+                        name: 'name'
+                    }, {
+                        type: 'string',
+                        name: 'RRN'
+                    }, {
+                        type: 'string',
+                        name: 'KCD'
+                    }, {
+                        type: 'string',
+                        name: 'date'
+                    }, {
+                        type: 'string',
+                        name: 'receiptNumber'
+                    }, {
+                        type: 'uint256',
+                        name: 'totalOop'
+                    }, {
+                        type: 'uint256',
+                        name: 'totalPcc'
+                    }, {
+                        type: 'uint256',
+                        name: 'totalFoop'
+                    }, {
+                        type: 'uint256',
+                        name: 'nonReimbursement'
+                    }];
+
+                    try {
+                        // 로그 디코딩
+                        const decodedLog = web3.eth.abi.decodeLog(eventAbi, log.data, log.topics.slice(1));
+                        setNoteData([...noteData, {
+
+                        }])
+                        var temp = [];
+                        console.log(decodedLog);
+                        temp.push(decodedLog['0']);
+                        temp.push(decodedLog['1']);
+                        temp.push(decodedLog['4']);
+                        noteData.push(temp);
+                    } catch (decodingError) {
+                        console.error('Error decoding log', decodingError);
+                    }
+                })
+                .on('error', console.error); // 에러 핸들링 추가
+        }
+
+        setupSubscription();
+
+        console.log("밖 : " + eventCount);
+
+        readData();
+    }, [account, deployed, web3]);
 
     const toggleModal = (item) => {
         setSelectedItem(item);
         setShowModal(!showModal);
+    };
+
+    const readData = async () => {
+        setData(d => d = null);
+        setData([]);
+        const networkId = await web3.eth.net.getId();
+        const CA = MRContract.networks[networkId].address;
+        const abi = MRContract.abi;
+        const Deployed = new web3.eth.Contract(abi, CA); // 배포한 컨트랙트 정보 가져오기
+        const resultData = await Deployed.methods.getMedicalRecords().call();
+
+        setData(resultData);
+    }
+
+    const decreaseCount = () => {
+        setEventCount(prevCount => prevCount - 1);
     };
 
     return (
@@ -83,17 +162,74 @@ function App() {
                 <div className="inner-container">
                     <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '20px'}}>
                         <span>
-                            <span style={{fontSize:'60px',fontWeight:'900',color:'red'}}>Meritz</span>
-                            <span style={{fontSize:'40px',fontWeight:'900',color:'black'}}>메리츠화재</span>
+                            <span style={{fontSize: '60px', fontWeight: '900', color: 'red'}}>Meritz</span>
+                            <span style={{fontSize: '40px', fontWeight: '900', color: 'black'}}>메리츠화재</span>
                         </span>
-                        <button onClick={() => setData([...data, {
-                            date:'2023-12-22',name: "새로운 환자", diseaseCode: "J09", birth: "1997.01.01", price: "35,000", nonPrice:"20,000"
-                        }])} style={{marginLeft:'auto', marginRight:'10px',marginTop:'auto', width:'60px',height:'40px'}}>조회
+                        <button onClick={readData} style={{
+                            marginLeft: 'auto',
+                            marginRight: '10px',
+                            marginTop: 'auto',
+                            width: '60px',
+                            height: '40px'
+                        }}>
+                            조회
                         </button>
-                        <NotificationButton count={eventCount} data={data} onToggle={toggleModal}/>
+                        <NotificationButton count={eventCount} data={noteData} onToggle={toggleModal} onDecreaseCount={decreaseCount}/>
                     </div>
-                    <DataList data={data} onProcess={handleProcess}/>
-                    {showModal && <Modal item={selectedItem} onClose={() => setShowModal(false)}/>}
+                    <div className="table-container">
+                        <table style={{width: '100%', borderCollapse: 'collapse', height: '100%'}}>
+                            <thead>
+                            <tr>
+                                <th>진료 기간</th>
+                                <th>성명</th>
+                                <th>진료 분류 기호</th>
+                                <th>주민등록번호</th>
+                                <th>금액</th>
+                                <th>비급여액</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {
+                                data.length > 0 ? (
+                                    data.map((item, index) => (
+                                        <tr
+                                            key={index}
+                                            style={{backgroundColor: hoverIndex === index ? '#f0f0f0' : 'transparent'}}
+                                            onMouseEnter={() => setHoverIndex(index)}
+                                            onMouseLeave={() => setHoverIndex(null)}
+                                            onClick={() => handleRowClick(item)}
+                                        >
+                                            <td>{item[3]}</td>
+                                            <td>{item[0]}</td>
+                                            <td>{item[2]}</td>
+                                            <td>{item[1]}</td>
+                                            <td>
+                                                {parseInt(item[8]) + parseInt(item[7]) + parseInt(item[5]) + parseInt(item[6])}
+                                            </td>
+                                            <td>{item[8]}</td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr style={{backgroundColor: '#f0f0f0'}}>
+                                        <td>&nbsp;</td>
+                                        <td>&nbsp;</td>
+                                        <td>&nbsp;</td>
+                                        <td>&nbsp;</td>
+                                        <td>&nbsp;</td>
+                                        <td>&nbsp;</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                        <ModalComponent
+                            isOpen={isModalOpen}
+                            onClose={handleClose}
+                            patientInfo={patientInfo}
+                            tableData={tableData}
+                        />
+                    </div>
                 </div>
             </div>
         </div>
