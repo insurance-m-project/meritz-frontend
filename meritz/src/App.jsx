@@ -8,22 +8,40 @@ import './styles.css';
 
 function App() {
     const [data, setData] = useState([]);
+    const [tempData, setTempData] = useState([]);
+    const [searchTerm, setSearchTerm] = useState(""); // 검색어를 저장할 상태
 
     const [web3, account] = useWeb3();
-    const [eventCount, setEventCount] = useState(0);
+    const [eventCount, setEventCount] = useState(() => {
+        const savedNoteData = localStorage.getItem('noteData');
+        return savedNoteData ? JSON.parse(savedNoteData).length : 0;
+    });
 
     const [selectedItem, setSelectedItem] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [tableData, setTableData] = useState([]);
     const [deployed, setDeployed] = useState(null);
 
-    const [noteData, setNoteData] = useState([]);
-
     const [hoverIndex, setHoverIndex] = useState(null);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [patientInfo, setPatientInfo] = useState(null);
 
+    const [noteData, setNoteData] = useState(() => {
+        // 로컬 스토리지에서 노트 데이터 불러오기
+        const savedNoteData = localStorage.getItem('noteData');
+        return savedNoteData ? JSON.parse(savedNoteData) : [];
+    });
+
+    useEffect(() => {
+        // noteData가 변경될 때 로컬 스토리지에 저장
+        localStorage.setItem('noteData', JSON.stringify(noteData));
+        console.log("저장! : ", localStorage.getItem('noteData'));
+    }, [noteData]);
+    //
+    // function formatNumber(number) {
+    //     return new Intl.NumberFormat().format(number);
+    // }
 
     const handleRowClick = (item) => {
         setSelectedItem(item);
@@ -34,7 +52,7 @@ function App() {
                 registrationNumber: item['1'],
                 issueNumber: item['4']
         })
-        console.log(item);
+
         var temp =[];
         for(var i = 0;i < item['9'].length;i++) {
             temp.push({
@@ -42,11 +60,11 @@ function App() {
                 date:item['9'][i]['1'],
                 treatCode:item['9'][i]['2'],
                 description:item['9'][i]['3'],
-                amount:item['9'][i]['4'],
-                oop:item['9'][i]['5'],
-                pcc:item['9'][i]['6'],
-                foop:item['9'][i]['7'],
-                nonReimbursement:item['9'][i]['8'],
+                amount:(item['9'][i]['4']),
+                oop:(item['9'][i]['5']),
+                pcc:(item['9'][i]['6']),
+                foop:(item['9'][i]['7']),
+                nonReimbursement:(item['9'][i]['8']),
             });
         }
         setTableData(temp);
@@ -69,7 +87,7 @@ function App() {
 
             setDeployed(Deployed); // 한 번만 설정하도록 조정
 
-            web3.setProvider(new web3.providers.WebsocketProvider('ws://34.64.230.165:8503'));
+            web3.setProvider(new web3.providers.WebsocketProvider('ws://localhost:8503'));
             const resultData = await Deployed.methods.getMedicalRecord('receipt123').call();
             console.log(resultData);
 
@@ -112,7 +130,7 @@ function App() {
                     try {
                         // 로그 디코딩
                         const decodedLog = web3.eth.abi.decodeLog(eventAbi, log.data, log.topics.slice(1));
-                        noteData.push(decodedLog['4']);
+                        setNoteData([...noteData,decodedLog['4']]);
                     } catch (decodingError) {
                         console.error('Error decoding log', decodingError);
                     }
@@ -133,8 +151,6 @@ function App() {
     };
 
     const readData = async () => {
-        setData(d => d = null);
-        setData([]);
         const networkId = await web3.eth.net.getId();
         const CA = MRContract.networks[networkId].address;
         const abi = MRContract.abi;
@@ -142,11 +158,31 @@ function App() {
         const resultData = await Deployed.methods.getMedicalRecords().call();
 
         setData(resultData);
+        setTempData(resultData);
     }
 
-    const decreaseCount = () => {
+    const decreaseCount = (item) => {
         setEventCount(prevCount => prevCount - 1);
+        setNoteData(item);
     };
+
+
+    const handleSearchChange = (event) => {
+        setSearchTerm(event.target.value); // 입력 필드의 변화를 검색어 상태에 저장
+    };
+
+    const handleSearch = () => {
+        // 검색 실행 로직: tempData에서 searchTerm을 사용하여 필터링
+        const filteredData = tempData.filter(item =>
+            item['0'].toLowerCase().includes(searchTerm.toLowerCase()) ||
+            item['1'].toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        setData(filteredData);
+    };
+
+    function formatNumber(number) {
+        return new Intl.NumberFormat().format(number);
+    }
 
     return (
         <div style={{display: 'flex', flexDirection: 'column'}}>
@@ -154,21 +190,34 @@ function App() {
                 <div className="inner-container">
                     <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '20px'}}>
                         <img src={`${process.env.PUBLIC_URL}/img.png`} alt="Description of the image" style={{width:"400px", height:"60px"}}/>
-                        <button onClick={readData} style={{
-                            marginLeft: 'auto',
-                            marginRight: '10px',
+                        <input
+                            type="text"
+                            placeholder="Search by name or RRN"
+                            value={searchTerm}
+                            onChange={handleSearchChange}
+                            style={{
+                                marginLeft:'auto',
+                                marginRight: '1px',
+                                marginTop:'20px',
+                                height: '40px',
+                                fontSize: '16px'
+                            }}
+                        />
+                        <button onClick={handleSearch} style={{
+                            position:'relative',
+                            marginLeft: '1px',
+                            marginRight: 'auto',
                             marginTop: 'auto',
                             width: '60px',
-                            height: '40px',
-                            fontSize:"24px"
+                            height: '45px',
                         }}>
-                            🔄️
+                            검색
                         </button>
                         <NotificationButton count={eventCount} data={noteData} onToggle={toggleModal} onDecreaseCount={decreaseCount}/>
                     </div>
                     <div className="table-container">
                         <table style={{width: '100%', borderCollapse: 'collapse', height: '100%'}}>
-                            <thead>
+                            <thead >
                             <tr>
                                 <th>진료 기간</th>
                                 <th>성명</th>
@@ -184,7 +233,10 @@ function App() {
                                     [...data].reverse().map((item, index) => (
                                         <tr
                                             key={index}
-                                            style={{backgroundColor: hoverIndex === index ? '#f0f0f0' : 'transparent'}}
+                                            style={{
+                                                backgroundColor: hoverIndex === index ? '#f0f0f0' : 'transparent',
+                                                borderBottom:"black"
+                                        }}
                                             onMouseEnter={() => setHoverIndex(index)}
                                             onMouseLeave={() => setHoverIndex(null)}
                                             onClick={() => handleRowClick(item)}
@@ -194,9 +246,9 @@ function App() {
                                             <td>{item[2]}</td>
                                             <td>{item[1]}</td>
                                             <td>
-                                                {parseInt(item[8]) + parseInt(item[7]) + parseInt(item[5]) + parseInt(item[6])}
+                                                {formatNumber(parseInt(item[8]) + parseInt(item[7]) + parseInt(item[5]) + parseInt(item[6]))}
                                             </td>
-                                            <td>{item[8]}</td>
+                                            <td>{formatNumber(item[8])}</td>
                                         </tr>
                                     ))
                                 ) : (
