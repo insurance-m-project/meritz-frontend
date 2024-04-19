@@ -24,9 +24,10 @@
     max-height: 700px;
     min-height: 700px;
     overflow-y: auto; /* 스크롤 자동 생성 */
-    border-radius: 8px; /* 테이블 모서리를 둥글게 */
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1); /* 그림자 효과 */
+    border-radius: 12px; /* 테이블 모서리를 둥글게 */
+    box-shadow: 0 8px 8px rgba(0,0,0,0.1); /* 그림자 효과 */
 }
+
 table {
     width: 100%;
     min-height: 100%; /* 최소 높이 설정 */
@@ -40,7 +41,7 @@ table {
 }
 
 th, td {
-    border: 1px solid transparent; /* 기본적으로 테두리가 보이지 않음 */
+    border: none; /* 기본적으로 테두리가 보이지 않음 */
     padding-top: 10px; /* 셀 안쪽 여백 */
     text-align: center; /* 수평 중앙 정렬 */
     vertical-align: middle; /* 수직 중앙 정렬 */
@@ -57,9 +58,14 @@ tbody tr {
     border: 1px solid black; /* 데이터가 있는 셀에만 테두리 적용 */
 }
 
+thead th {
+    position: sticky;
+    top: 0; /* 스크롤 시 헤더 상단 고정 */
+}
 th {
     background-color: #2a3042; /* 헤더 배경색 */
     color: #fefefe;
+    border: none;
 }
 
 tr:hover {
@@ -105,4 +111,21 @@ tr:hover {
 
 .dropdown-item button {
     margin-left: 10px;
+}
+
+.modal-header {
+    padding: 16px;
+    background-color: #f4f4f4;
+    color: #333;
+    border-bottom: 1px solid #e5e5e5;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.modal-close-button {
+    float: right;
+    border: none;
+    background: none;
+    font-size: 24px;
+    cursor: pointer;
 }
