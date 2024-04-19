@@ -69,7 +69,7 @@ function App() {
 
             setDeployed(Deployed); // 한 번만 설정하도록 조정
 
-            web3.setProvider(new web3.providers.WebsocketProvider('ws://localhost:8503'));
+            web3.setProvider(new web3.providers.WebsocketProvider('ws://34.64.230.165:8503'));
             const resultData = await Deployed.methods.getMedicalRecord('receipt123').call();
             console.log(resultData);
 
@@ -112,15 +112,7 @@ function App() {
                     try {
                         // 로그 디코딩
                         const decodedLog = web3.eth.abi.decodeLog(eventAbi, log.data, log.topics.slice(1));
-                        setNoteData([...noteData, {
-
-                        }])
-                        var temp = [];
-                        console.log(decodedLog);
-                        temp.push(decodedLog['0']);
-                        temp.push(decodedLog['1']);
-                        temp.push(decodedLog['4']);
-                        noteData.push(temp);
+                        noteData.push(decodedLog['4']);
                     } catch (decodingError) {
                         console.error('Error decoding log', decodingError);
                     }
@@ -161,18 +153,16 @@ function App() {
             <div className="total-container">
                 <div className="inner-container">
                     <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '20px'}}>
-                        <span>
-                            <span style={{fontSize: '60px', fontWeight: '900', color: 'red'}}>Meritz</span>
-                            <span style={{fontSize: '40px', fontWeight: '900', color: 'black'}}>메리츠화재</span>
-                        </span>
+                        <img src={`${process.env.PUBLIC_URL}/img.png`} alt="Description of the image" style={{width:"400px", height:"60px"}}/>
                         <button onClick={readData} style={{
                             marginLeft: 'auto',
                             marginRight: '10px',
                             marginTop: 'auto',
                             width: '60px',
-                            height: '40px'
+                            height: '40px',
+                            fontSize:"24px"
                         }}>
-                            조회
+                            🔄️
                         </button>
                         <NotificationButton count={eventCount} data={noteData} onToggle={toggleModal} onDecreaseCount={decreaseCount}/>
                     </div>
@@ -191,7 +181,7 @@ function App() {
                             <tbody>
                             {
                                 data.length > 0 ? (
-                                    data.map((item, index) => (
+                                    [...data].reverse().map((item, index) => (
                                         <tr
                                             key={index}
                                             style={{backgroundColor: hoverIndex === index ? '#f0f0f0' : 'transparent'}}
