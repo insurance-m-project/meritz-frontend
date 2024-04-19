@@ -14,7 +14,7 @@ function NotificationButton({ count, data, onToggle, onDecreaseCount }) {
     const handleClose = (index) => {
         const newData = dropdownData.filter((_, i) => i !== index);
         setDropdownData(newData);
-        onDecreaseCount();
+        onDecreaseCount(newData);
     };
 
     return (
@@ -34,12 +34,13 @@ function NotificationButton({ count, data, onToggle, onDecreaseCount }) {
                     listStyleType: 'none',
                     padding: 0,
                     margin: 0
+                    ,borderRadius: "8px"
                 }}>
                     {
                         dropdownData.map((item, index) => (
-                        <li key={index} style={{ padding: '10px 8px', height: '50px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #ccc',borderRadius: "8px" }}>
-                            <span style={{fontWeight:"bold"}}>신규 접수 번호 : </span>
-                            <p>{item[2]}</p>
+                        <li key={index} style={{ padding: '10px 8px', height: '50px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #ccc'}}>
+                            <span style={{fontWeight:"bold"}}>신규 접수 : </span>
+                            <p>{item}</p>
                             <button onClick={() => handleClose(index)}>✖️</button>
                         </li>
                     ))}
