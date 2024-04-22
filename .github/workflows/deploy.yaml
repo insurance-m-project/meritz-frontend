@@ -10,10 +10,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - run: touch .env
-      - run: echo "${{ secrets.ENV_FILE }}" > .env
-      - run: cat .env
-
 
       - name: Docker build & push to dev
         run: |
