@@ -27,5 +27,5 @@ jobs:
           key: ${{ secrets.PRIVATE_KEY }}
           script: |
             docker pull ${{ secrets.DOCKER_USERNAME }}/meritz-web
-            docker run -d -p 4000:4000 ${{ secrets.DOCKER_USERNAME }}/meritz-web
+            docker run -d -p 4000:3000 ${{ secrets.DOCKER_USERNAME }}/meritz-web
             docker image prune -f
