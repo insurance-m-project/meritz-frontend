@@ -3,6 +3,7 @@ import React, {useEffect, useState} from 'react';
 import NotificationButton from './components/NotificationButton';
 import ModalComponent from './components/ModalComponent';
 import useWeb3 from './hooks/useWeb3';
+import DeletionModal from './components/DeletionModal'; // 새 모달 컴포넌트 가져오기
 import MRContract from './contracts/MedicalRecord.json';
 import './styles.css';
 
@@ -10,6 +11,8 @@ function App() {
     const [data, setData] = useState([]);
     const [tempData, setTempData] = useState([]);
     const [searchTerm, setSearchTerm] = useState(""); // 검색어를 저장할 상태
+
+    const [curCnt, setCurCnt] = useState(0);
 
     const [web3, account] = useWeb3();
     const [eventCount, setEventCount] = useState(() => {
@@ -33,38 +36,42 @@ function App() {
         return savedNoteData ? JSON.parse(savedNoteData) : [];
     });
 
+    const [page, setPage] = useState(1);
+
+    const [isDeleting, setIsDeleting] = useState(false);
+
     useEffect(() => {
         // noteData가 변경될 때 로컬 스토리지에 저장
         localStorage.setItem('noteData', JSON.stringify(noteData));
         console.log("저장! : ", localStorage.getItem('noteData'));
     }, [noteData]);
-    //
-    // function formatNumber(number) {
-    //     return new Intl.NumberFormat().format(number);
-    // }
 
+    useEffect(() => {
+    }, [curCnt])
+    useEffect(() => {
+    }, [data])
     const handleRowClick = (item) => {
         setSelectedItem(item);
         setPatientInfo({
-                name: item['0'],
-                treatmentCode: item['2'],
-                treatmentPeriod: item['3'],
-                registrationNumber: item['1'],
-                issueNumber: item['4']
+            name: item['0'],
+            treatmentCode: item['2'],
+            treatmentPeriod: item['3'],
+            registrationNumber: item['1'],
+            issueNumber: item['4']
         })
 
-        var temp =[];
-        for(var i = 0;i < item['9'].length;i++) {
+        var temp = [];
+        for (var i = 0; i < item['9'].length; i++) {
             temp.push({
-                category:item['9'][i]['0'],
-                date:item['9'][i]['1'],
-                treatCode:item['9'][i]['2'],
-                description:item['9'][i]['3'],
-                amount:(item['9'][i]['4']),
-                oop:(item['9'][i]['5']),
-                pcc:(item['9'][i]['6']),
-                foop:(item['9'][i]['7']),
-                nonReimbursement:(item['9'][i]['8']),
+                category: item['9'][i]['0'],
+                date: item['9'][i]['1'],
+                treatCode: item['9'][i]['2'],
+                description: item['9'][i]['3'],
+                amount: (item['9'][i]['4']),
+                oop: (item['9'][i]['5']),
+                pcc: (item['9'][i]['6']),
+                foop: (item['9'][i]['7']),
+                nonReimbursement: (item['9'][i]['8']),
             });
         }
         setTableData(temp);
@@ -88,8 +95,6 @@ function App() {
             setDeployed(Deployed); // 한 번만 설정하도록 조정
 
             web3.setProvider(new web3.providers.WebsocketProvider('ws://localhost:8503'));
-            const resultData = await Deployed.methods.getMedicalRecord('receipt123').call();
-            console.log(resultData);
 
             web3.eth.subscribe('logs', {address: CA})
                 .on('data', (log) => {
@@ -130,7 +135,9 @@ function App() {
                     try {
                         // 로그 디코딩
                         const decodedLog = web3.eth.abi.decodeLog(eventAbi, log.data, log.topics.slice(1));
-                        setNoteData([...noteData,decodedLog['4']]);
+                        noteData.push(decodedLog['4']);
+                        setNoteData(noteData);
+                        readData();
                     } catch (decodingError) {
                         console.error('Error decoding log', decodingError);
                     }
@@ -145,6 +152,7 @@ function App() {
         readData();
     }, [account, deployed, web3]);
 
+
     const toggleModal = (item) => {
         setSelectedItem(item);
         setShowModal(!showModal);
@@ -155,10 +163,32 @@ function App() {
         const CA = MRContract.networks[networkId].address;
         const abi = MRContract.abi;
         const Deployed = new web3.eth.Contract(abi, CA); // 배포한 컨트랙트 정보 가져오기
-        const resultData = await Deployed.methods.getMedicalRecords().call();
+        setPage(1);
+        const cnt = await Deployed.methods.medicalRecordsCount().call();
+        console.log(cnt);
+        setCurCnt((c) => c + parseInt(cnt));
+        const resultData = await Deployed.methods.getPagedMedicalRecords(page, 20, cnt).call();
+        setPage(p => p + 1);
+        console.log(resultData);
+        console.log("현재: " + curCnt);
 
         setData(resultData);
         setTempData(resultData);
+    }
+
+    // 테이블에 추가하는 메소드
+    const addData = async () => {
+        const networkId = await web3.eth.net.getId();
+        const CA = MRContract.networks[networkId].address;
+        const abi = MRContract.abi;
+        const Deployed = new web3.eth.Contract(abi, CA); // 배포한 컨트랙트 정보 가져오기
+        const newPageData = await Deployed.methods.getPagedMedicalRecords(page, 20, curCnt).call();
+        setPage(p => p + 1);
+        console.log(newPageData);
+
+        // 새로운 데이터를 기존 데이터 배열에 이어붙이기
+        setData(prevData => [...prevData, ...newPageData]);  // 데이터 병합
+        setTempData(prevData => [...prevData, ...newPageData]);  // 필터링용 임시 데이터 배열에도 추가
     }
 
     const decreaseCount = (item) => {
@@ -184,27 +214,67 @@ function App() {
         return new Intl.NumberFormat().format(number);
     }
 
+    const handleScroll = (e) => {
+        const bottom = e.target.scrollHeight - e.target.scrollTop === e.target.clientHeight;
+        if (bottom) {
+            handleScrollToEnd(); // 스크롤이 끝에 도달했을 때 실행할 함수
+        }
+    };
+
+    const handleScrollToEnd = () => {
+        console.log('스크롤이 끝에 도달했습니다.');
+        addData();
+        // 여기에 추가적인 로직을 구현할 수 있습니다.
+    };
+
+    // 삭제 함수 구현
+    const handleDelete = async (index, event) => {
+        event.stopPropagation();
+        const networkId = await web3.eth.net.getId();
+        const CA = MRContract.networks[networkId].address;
+        const abi = MRContract.abi;
+        const Deployed = new web3.eth.Contract(abi, CA); // 배포한 컨트랙트 정보 가져오기
+        setIsDeleting(true); // 모달 표시
+        web3.eth.getAccounts().then(accounts => {
+            Deployed.methods.deleteMedicalRecord(data[index][4], accounts[0]).send({
+                from: accounts[0]
+            })
+                .then(result => {
+                    console.log('Success:', result);
+                    setIsDeleting(false); // 모달 숨기기
+                    const updatedData = data.filter((item, itemIndex) => itemIndex !== index);
+                    setData(updatedData); // 상태 업데이트
+                    setTempData(updatedData); // 필터링 데이터도 업데이트
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    setIsDeleting(false); // 모달 숨기기
+                });
+        });
+    };
+
     return (
         <div style={{display: 'flex', flexDirection: 'column'}}>
             <div className="total-container">
                 <div className="inner-container">
                     <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '20px'}}>
-                        <img src={`${process.env.PUBLIC_URL}/img.png`} alt="Description of the image" style={{width:"400px", height:"60px"}}/>
+                        <img src={`${process.env.PUBLIC_URL}/img.png`} alt="Description of the image"
+                             style={{width: "400px", height: "60px"}}/>
                         <input
                             type="text"
                             placeholder="Search by name or RRN"
                             value={searchTerm}
                             onChange={handleSearchChange}
                             style={{
-                                marginLeft:'auto',
+                                marginLeft: 'auto',
                                 marginRight: '1px',
-                                marginTop:'20px',
+                                marginTop: '20px',
                                 height: '40px',
                                 fontSize: '16px'
                             }}
                         />
                         <button onClick={handleSearch} style={{
-                            position:'relative',
+                            position: 'relative',
                             marginLeft: '1px',
                             marginRight: 'auto',
                             marginTop: 'auto',
@@ -213,11 +283,12 @@ function App() {
                         }}>
                             검색
                         </button>
-                        <NotificationButton count={eventCount} data={noteData} onToggle={toggleModal} onDecreaseCount={decreaseCount}/>
+                        <NotificationButton count={eventCount} data={noteData} onToggle={toggleModal}
+                                            onDecreaseCount={decreaseCount}/>
                     </div>
-                    <div className="table-container">
+                    <div className="table-container" onScroll={handleScroll}>
                         <table style={{width: '100%', borderCollapse: 'collapse', height: '100%'}}>
-                            <thead >
+                            <thead>
                             <tr>
                                 <th>진료 기간</th>
                                 <th>성명</th>
@@ -225,18 +296,19 @@ function App() {
                                 <th>주민등록번호</th>
                                 <th>금액</th>
                                 <th>비급여액</th>
+                                <th>삭제</th>
                             </tr>
                             </thead>
                             <tbody>
                             {
                                 data.length > 0 ? (
-                                    [...data].reverse().map((item, index) => (
+                                    [...data].map((item, index) => (
                                         <tr
                                             key={index}
                                             style={{
                                                 backgroundColor: hoverIndex === index ? '#f0f0f0' : 'transparent',
-                                                borderBottom:"black"
-                                        }}
+                                                borderBottom: "black"
+                                            }}
                                             onMouseEnter={() => setHoverIndex(index)}
                                             onMouseLeave={() => setHoverIndex(null)}
                                             onClick={() => handleRowClick(item)}
@@ -249,10 +321,20 @@ function App() {
                                                 {formatNumber(parseInt(item[8]) + parseInt(item[7]) + parseInt(item[5]) + parseInt(item[6]))}
                                             </td>
                                             <td>{formatNumber(item[8])}</td>
+                                            {
+                                                hoverIndex === index && (
+                                                    <td>
+                                                        <button onClick={(e) => handleDelete(index, e)} style={{ cursor: 'pointer' }}>
+                                                            삭제
+                                                        </button>
+                                                    </td>
+                                                )
+                                            }
                                         </tr>
                                     ))
                                 ) : (
                                     <tr style={{backgroundColor: '#f0f0f0'}}>
+                                        <td>&nbsp;</td>
                                         <td>&nbsp;</td>
                                         <td>&nbsp;</td>
                                         <td>&nbsp;</td>
@@ -271,6 +353,10 @@ function App() {
                             patientInfo={patientInfo}
                             tableData={tableData}
                         />
+                    </div>
+                    <div>
+                        <DeletionModal isOpen={isDeleting} message="삭제 요청중..." />
+                        {/* 기타 UI 구성요소 */}
                     </div>
                 </div>
             </div>

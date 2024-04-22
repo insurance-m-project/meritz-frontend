@@ -38,12 +38,12 @@ function NotificationButton({ count, data, onToggle, onDecreaseCount }) {
                 }}>
                     {
                         dropdownData.map((item, index) => (
-                        <li key={index} style={{ padding: '10px 8px', height: '50px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #ccc'}}>
-                            <span style={{fontWeight:"bold"}}>신규 접수 : </span>
-                            <p>{item}</p>
-                            <button onClick={() => handleClose(index)}>✖️</button>
-                        </li>
-                    ))}
+                            <li key={index} style={{ padding: '10px 8px', height: '50px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #ccc'}}>
+                                <span style={{fontWeight:"bold"}}>신규 접수 : </span>
+                                <p>{item}</p>
+                                <button onClick={() => handleClose(index)}>✖️</button>
+                            </li>
+                        ))}
                 </ul>
             )}
         </div>
