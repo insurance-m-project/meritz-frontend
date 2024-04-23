@@ -10,6 +10,10 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - run: touch meritz/.env
+      - run: echo "${{ secrets.ENV_FILE }}" > meritz/.env
+      - run: cat meritz/.env
+
 
       - name: Docker build & push to dev
         run: |
