@@ -30,6 +30,7 @@ jobs:
           port: 22
           key: ${{ secrets.PRIVATE_KEY }}
           script: |
+            docker rm -f $(docker ps --filter name=meritz-web -a -q)
             docker pull ${{ secrets.DOCKER_USERNAME }}/meritz-web
             docker run -d -p 4000:3000 ${{ secrets.DOCKER_USERNAME }}/meritz-web
             docker image prune -f
