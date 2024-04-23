@@ -33,5 +33,5 @@ jobs:
             docker stop $(docker ps --filter name=meritz-web -a -q)
             docker rm -f $(docker ps --filter name=meritz-web -a -q)
             docker pull ${{ secrets.DOCKER_USERNAME }}/meritz-web
-            docker run -d -p 4000:3000 ${{ secrets.DOCKER_USERNAME }}/meritz-web
+            docker run -d -p --name mertiz-web 4000:3000 ${{ secrets.DOCKER_USERNAME }}/meritz-web 
             docker image prune -f
