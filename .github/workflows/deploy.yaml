@@ -35,5 +35,8 @@ jobs:
               docker rm mertiz-web
               docker rmi ${{ secrets.DOCKER_USERNAME }}/meritz-web
             fi
+            if docker images -a | grep -q ${{ secrets.DOCKER_USERNAME }}/meritz-web; then
+              docker rmi -f ${{ secrets.DOCKER_USERNAME }}/meritz-web
+            fi
             docker pull ${{ secrets.DOCKER_USERNAME }}/meritz-web
             docker run -d -p 4000:3000 --name mertiz-web ${{ secrets.DOCKER_USERNAME }}/meritz-web 
