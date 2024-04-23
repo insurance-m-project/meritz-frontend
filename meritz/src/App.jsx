@@ -8,6 +8,7 @@ import MRContract from './contracts/MedicalRecord.json';
 import './styles.css';
 
 function App() {
+    const wsUrl = process.env.REACT_APP_ETHEREUM_NODE_URL;
     const [data, setData] = useState([]);
     const [tempData, setTempData] = useState([]);
     const [searchTerm, setSearchTerm] = useState(""); // 검색어를 저장할 상태
@@ -94,7 +95,7 @@ function App() {
 
             setDeployed(Deployed); // 한 번만 설정하도록 조정
 
-            web3.setProvider(new web3.providers.WebsocketProvider('ws://localhost:8503'));
+            web3.setProvider(new web3.providers.WebsocketProvider(wsUrl));
 
             web3.eth.subscribe('logs', {address: CA})
                 .on('data', (log) => {
