@@ -30,8 +30,8 @@ jobs:
           port: 22
           key: ${{ secrets.PRIVATE_KEY }}
           script: |
-            docker stop $(docker ps --filter name=meritz-web -a -q)
-            docker rm -f $(docker ps --filter name=meritz-web -a -q)
+            docker stop mertiz-web
+            docker rm mertiz-web
+            docker rmi ${{ secrets.DOCKER_USERNAME }}/meritz-web
             docker pull ${{ secrets.DOCKER_USERNAME }}/meritz-web
             docker run -d -p 4000:3000 --name mertiz-web ${{ secrets.DOCKER_USERNAME }}/meritz-web 
-            docker image prune -f
