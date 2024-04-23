@@ -30,8 +30,10 @@ jobs:
           port: 22
           key: ${{ secrets.PRIVATE_KEY }}
           script: |
-            docker stop mertiz-web
-            docker rm mertiz-web
-            docker rmi ${{ secrets.DOCKER_USERNAME }}/meritz-web
+            if docker ps -a | grep -q meritz-web; then
+              docker stop mertiz-web
+              docker rm mertiz-web
+              docker rmi ${{ secrets.DOCKER_USERNAME }}/meritz-web
+            fi
             docker pull ${{ secrets.DOCKER_USERNAME }}/meritz-web
             docker run -d -p 4000:3000 --name mertiz-web ${{ secrets.DOCKER_USERNAME }}/meritz-web 
