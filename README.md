@@ -43,6 +43,7 @@
 <br>
 
 ## Project Structure 
+![cicd](https://github.com/insurance-m-project/logging-frontend/assets/90203250/a70af1e9-d730-40bb-9e07-b08636abc0b0)
 
 <br>
 
